@@ -1,56 +1,136 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
+import { StatusBar } from 'expo-status-bar';
+import { Image, StyleSheet, Button, Text, View, FlatList } from 'react-native';
+import React, { useEffect , useState } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 
+import { getCharacters } from '../../Services/api'
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+
+
+interface Character {
+  id: number;
+  name: string;
+  status: string;
+  species: string;
+  type: string;
+  image: string
+}
+
+interface CharacterView {
+  id: number;
+  name: string;
+  image: string
+}
+
+type ItemProps = {title: string};
+
+const Item = ({title}: ItemProps) => (
+  <View style={styles.item}>
+    <Text style={styles.title}>{title}</Text>
+  </View>
+);
+
 export default function HomeScreen() {
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewList, setViewList] = useState(false);
+  const [error, setError] = useState('');
+
+  const [viewCharacters , setViewCharacters] = useState<CharacterView[]>([]);
+
+  const onPressLearnMore = () => {
+    const viewStateCharacters = characters.map((e) => {
+      return {
+        id: e.id,
+        name: e.name,
+        image: e.image,
+      };
+    });
+    if (viewStateCharacters.length > 0) {
+      setViewCharacters(viewStateCharacters);
+      console.log(viewCharacters.length);
+    }
+    setViewList(!viewList); 
+  }
+
+  useEffect(() => {
+    const loadCharacters = async () => {
+      try {
+        const data = await getCharacters(); 
+        setCharacters(data);
+      } catch (err) {
+        setError('Error al cargar los datos');
+        console.error(err);
+      } finally {
+        setLoading(false); 
+      }
+    };
+    loadCharacters();
+  }, []);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
+    <>
+    <View style={styles.container}>
+    <StatusBar style="light" />
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+        <Button
+          onPress={onPressLearnMore}
+          title="pulsar"
+          color="#841584"
+          accessibilityLabel="Learn more about this purple button"
+          disabled={loading}
+        />
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container}>
+          {viewList &&
+            <FlatList
+              data={viewCharacters}
+              renderItem={({ item }) => (
+                <View style={styles.item}>
+                  <Item title={item.name} />
+                  <Image
+                    style={styles.tinyLogo}
+                    source={{
+                      uri: item.image,
+                    }}
+                  />
+                </View>
+              )}
+              keyExtractor={item => String(item.id)}
+            />
+          }
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </View>
+
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#09f',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  item: {
+    backgroundColor: '#fff',
+    padding: 5,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  title: {
+    fontSize: 26,
+  },
+  tinyLogo: {
+    width: 100,
+    height: 100,
+  },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
